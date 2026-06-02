@@ -18,7 +18,8 @@ import {
   Bookmark,
   Heart,
   ChevronRight,
-  ChevronLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   Send,
   Loader2,
   User,
@@ -467,10 +468,10 @@ export function Dashboard() {
             {/* Desktop Collapse Toggle (visible on md+) */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-[#EAEAE6] hover:bg-[#F3F3EF] transition-all text-[#5A5A57] hover:text-[#0C0C0C]"
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#F3F3EF] active:bg-[#EAEAE6] transition-all text-[#5A5A57] hover:text-[#0C0C0C] bg-transparent border-none focus:outline-none cursor-pointer"
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
-              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
             </button>
 
             {/* Mobile Close Button (visible on mobile only) */}
