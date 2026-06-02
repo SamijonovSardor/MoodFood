@@ -18,6 +18,7 @@ import {
   Bookmark,
   Heart,
   ChevronRight,
+  ChevronLeft,
   Send,
   Loader2,
   User,
@@ -217,6 +218,10 @@ export function Dashboard() {
   const [textInput, setTextInput] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+
+  // Sidebar toggle states
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Chatbot states
   const [chatMessages, setChatMessages] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
@@ -423,18 +428,59 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFB] text-[#0C0C0C] flex">
+    <div className="min-h-screen bg-[#FDFDFB] text-[#0C0C0C] flex relative overflow-x-hidden">
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
+        />
+      )}
+
       {/* ─── Left Sidebar Navigation ─── */}
-      <aside className="w-16 md:w-64 border-r border-[#EAEAE6] bg-[#F9F9F6] flex flex-col p-3 md:p-6 shrink-0 h-screen sticky top-0 justify-between transition-all duration-300">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col p-3 border-r border-[#EAEAE6] bg-[#F9F9F6] transition-all duration-300
+          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0 md:sticky md:top-0 md:h-screen md:p-6 shrink-0 justify-between
+          ${isCollapsed ? "md:w-20" : "md:w-64"}`}
+      >
         <div className="flex flex-col gap-8">
-          {/* Logo */}
-          <div className="flex items-center justify-center md:justify-start gap-2">
-            <span className="text-xl font-display font-bold tracking-tight md:hidden text-[#16A34A] italic">
-              M<span className="text-[#0C0C0C]">F</span>
-            </span>
-            <span className="text-xl font-display font-bold tracking-tight hidden md:inline">
-              Mood<span className="text-[#16A34A] italic font-semibold">Food</span>
-            </span>
+          {/* Logo & Toggle Button */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {isCollapsed ? (
+                <span className="text-xl font-display font-bold tracking-tight text-[#16A34A] italic">
+                  M<span className="text-[#0C0C0C]">F</span>
+                </span>
+              ) : (
+                <>
+                  <span className="text-xl font-display font-bold tracking-tight md:hidden text-[#16A34A] italic">
+                    M<span className="text-[#0C0C0C]">F</span>
+                  </span>
+                  <span className="text-xl font-display font-bold tracking-tight hidden md:inline">
+                    Mood<span className="text-[#16A34A] italic font-semibold">Food</span>
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* Desktop Collapse Toggle (visible on md+) */}
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-[#EAEAE6] hover:bg-[#F3F3EF] transition-all text-[#5A5A57] hover:text-[#0C0C0C]"
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
+
+            {/* Mobile Close Button (visible on mobile only) */}
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              className="md:hidden h-8 w-8 flex items-center justify-center rounded-lg border border-[#EAEAE6] hover:bg-[#F3F3EF] text-[#5A5A57] text-lg font-bold"
+              title="Close Menu"
+            >
+              ×
+            </button>
           </div>
 
           {/* Navigation Options */}
@@ -453,8 +499,11 @@ export function Dashboard() {
                   onClick={() => {
                     setActiveTab(item.id as any);
                     setActiveRecipe(null);
+                    setIsMobileOpen(false); // Close mobile menu on select
                   }}
-                  className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 md:py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
+                  className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
+                    isCollapsed ? "md:justify-center" : "md:justify-start"
+                  } ${
                     active
                       ? "bg-[#16A34A] text-white"
                       : "text-[#5A5A57] hover:bg-[#F3F3EF] hover:text-[#0C0C0C]"
@@ -462,16 +511,21 @@ export function Dashboard() {
                   title={item.label}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
-                  <span className="hidden md:inline">{item.label}</span>
+                  {(!isCollapsed || isMobileOpen) && <span>{item.label}</span>}
                   {item.id === "saved" && savedMeals.length > 0 && (
                     <>
-                      <span
-                        className={`hidden md:inline-block ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                          active ? "bg-white text-[#16A34A]" : "bg-[#16A34A]/10 text-[#16A34A]"
-                        }`}
-                      >
-                        {savedMeals.length}
-                      </span>
+                      {(!isCollapsed || isMobileOpen) && (
+                        <span
+                          className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            active ? "bg-white text-[#16A34A]" : "bg-[#16A34A]/10 text-[#16A34A]"
+                          }`}
+                        >
+                          {savedMeals.length}
+                        </span>
+                      )}
+                      {isCollapsed && !isMobileOpen && (
+                        <span className="hidden md:block absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500" />
+                      )}
                       <span className="md:hidden absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500" />
                     </>
                   )}
@@ -487,8 +541,11 @@ export function Dashboard() {
             onClick={() => {
               setActiveTab("profile");
               setActiveRecipe(null);
+              setIsMobileOpen(false);
             }}
-            className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 md:py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
+            className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
+              isCollapsed ? "md:justify-center" : "md:justify-start"
+            } ${
               activeTab === "profile"
                 ? "bg-[#16A34A] text-white"
                 : "text-[#5A5A57] hover:bg-[#F3F3EF] hover:text-[#0C0C0C]"
@@ -496,22 +553,41 @@ export function Dashboard() {
             title="Profile Insights"
           >
             <User className="h-5 w-5 shrink-0" />
-            <span className="hidden md:inline">Profile</span>
+            {(!isCollapsed || isMobileOpen) && <span>Profile</span>}
           </button>
 
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-3 md:py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-all"
+            className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-all ${
+              isCollapsed ? "md:justify-center" : "md:justify-start"
+            }`}
             title="Sign Out"
           >
             <LogOut className="h-5 w-5 shrink-0" />
-            <span className="hidden md:inline">Sign Out</span>
+            {(!isCollapsed || isMobileOpen) && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
 
       {/* ─── Main Content Area (Right Side) ─── */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile Floating Trigger Header */}
+        <header className="md:hidden flex items-center justify-between p-4 border-b border-[#EAEAE6] bg-[#FDFDFB] sticky top-0 z-30">
+          <button
+            onClick={() => setIsMobileOpen(true)}
+            className="p-2 border border-[#EAEAE6] rounded-xl hover:bg-[#F3F3EF] transition text-[#0C0C0C]"
+            title="Open Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <span className="text-base font-display font-bold tracking-tight">
+            Mood<span className="text-[#16A34A] italic font-semibold">Food</span>
+          </span>
+          <div className="w-9 h-9 rounded-full bg-[#16A34A]/10 text-[#16A34A] flex items-center justify-center text-sm font-semibold">
+            {session?.user?.name?.[0] || "U"}
+          </div>
+        </header>
+
         {/* Dynamic Section Contents */}
         <main className="flex-1 p-6 sm:p-10 overflow-y-auto max-w-5xl">
           
