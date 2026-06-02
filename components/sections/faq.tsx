@@ -1,60 +1,54 @@
-import { Sparkle } from "@/components/illustrations/doodles";
-import { Eyebrow } from "@/components/ui/eyebrow";
-
 const faqs = [
   {
-    q: "MoodFood bepulmi?",
-    a: "Ha. Asosiy funksiya doim bepul bo'lib qoladi. Kelajakda premium imkoniyatlar qo'shilishi mumkin.",
+    q: "How does MoodFood understand mood?",
+    a: "MoodFood uses advanced language models to analyze the words you use and detect emotional cues, then maps them to meal characteristics that suit how you feel.",
   },
   {
-    q: "Qanday ishlaydi?",
-    a: "Siz o'z kayfiyatingizni yozasiz, AI matnni tahlil qilib mos taomni tavsiya qiladi. 30 soniyada natija.",
+    q: "Can I upload ingredients from my fridge?",
+    a: "Yes. Take a photo of your fridge or pantry and our AI will identify available ingredients and suggest meals you can make right now.",
   },
   {
-    q: "Ma'lumotlarim saqlanadimi?",
-    a: "Yo'q. Sizning matnlaringiz hech qayerda saqlanmaydi, faqat tahlil uchun ishlatiladi.",
+    q: "Can MoodFood generate custom recipes?",
+    a: "Absolutely. Every recommendation comes with a step-by-step recipe tailored to your preferences, dietary needs, and ingredient availability.",
   },
   {
-    q: "Retsept ham chiqadimi?",
-    a: "Ha, har bir tavsiya bilan taomning retsepti va foydali xususiyatlari ko'rsatiladi.",
+    q: "Do I need cooking experience?",
+    a: "Not at all. MoodFood is built for everyone — from beginners to experienced cooks. Recipes include clear instructions and the cooking assistant can help in real time.",
   },
   {
-    q: "Qaysi tillarda ishlaydi?",
-    a: "O'zbek va ingliz tillarida. AI sizning tilingizga qarab javob beradi.",
+    q: "Can I use MoodFood for different dietary preferences?",
+    a: "Yes. You can specify dietary preferences and restrictions, and MoodFood will adapt every recommendation to fit your lifestyle.",
   },
 ];
 
 export function Faq() {
   return (
-    <section className="py-14 md:py-20 border-t border-foreground/5">
+    <section id="faq" className="py-20 md:py-28">
       <div className="container max-w-3xl">
-        <div className="mb-10">
-          <Eyebrow className="mb-6">Savol-javob</Eyebrow>
-          <h2 className="font-serif text-4xl md:text-5xl font-bold tracking-tight text-balance">
-            Qiziq <span className="italic text-primary">bo'ldimi</span>?
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-balance">
+            Frequently asked{" "}
+            <span className="font-display italic text-primary">questions</span>
           </h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="divide-y divide-border border-y border-border">
           {faqs.map((faq, idx) => (
-            <details
-              key={idx}
-              className="group rounded-2xl border border-foreground/10 bg-card overflow-hidden shadow-soft hover:border-foreground/20 transition-colors"
-            >
-              <summary className="flex items-center justify-between gap-4 p-5 md:p-6 cursor-pointer list-none">
-                <div className="flex items-center gap-3">
-                  <Sparkle className="h-4 w-4 text-primary/60 transition-transform group-open:rotate-90" />
-                  <h3 className="font-serif text-lg md:text-xl font-semibold">
-                    {faq.q}
-                  </h3>
-                </div>
-                <div aria-hidden="true" className="text-foreground/40 group-open:rotate-45 transition-transform text-2xl leading-none">
+            <details key={idx} className="group py-5">
+              <summary className="flex items-center justify-between gap-4 cursor-pointer list-none">
+                <h3 className="text-base md:text-lg font-semibold tracking-tight pr-4">
+                  {faq.q}
+                </h3>
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-muted-foreground group-open:rotate-45 transition-transform text-xl leading-none"
+                >
                   +
-                </div>
+                </span>
               </summary>
-              <div className="px-5 md:px-6 pb-5 md:pb-6 pl-12 md:pl-[3.25rem] text-foreground/70 leading-relaxed">
+              <p className="mt-3 text-foreground/65 leading-relaxed max-w-2xl">
                 {faq.a}
-              </div>
+              </p>
             </details>
           ))}
         </div>

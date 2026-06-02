@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn, signOut, useSession } from "next-auth/react";
-import { LogIn, LogOut, Settings, User } from "lucide-react";
+import { LogIn, LogOut, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,20 +29,18 @@ export function UserButton() {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
-    return (
-      <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
-    );
+    return <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />;
   }
 
   if (!session?.user) {
     return (
       <Button
+        variant="ghost"
         size="sm"
-        className="rounded-full px-5"
         onClick={() => signIn("google", { callbackUrl: "/" })}
       >
         <LogIn aria-hidden="true" className="mr-2 h-4 w-4" />
-        Kirish
+        Sign In
       </Button>
     );
   }
@@ -51,8 +49,8 @@ export function UserButton() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="rounded-full ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label="Foydalanuvchi menyusi"
+          className="rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label="User menu"
         >
           <Avatar className="h-9 w-9 border border-border">
             {session.user.image ? (
@@ -66,7 +64,7 @@ export function UserButton() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-semibold leading-none">
-              {session.user.name ?? "Foydalanuvchi"}
+              {session.user.name ?? "User"}
             </p>
             {session.user.email ? (
               <p className="text-xs leading-none text-muted-foreground">
@@ -78,11 +76,7 @@ export function UserButton() {
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled>
           <User aria-hidden="true" className="mr-2 h-4 w-4" />
-          Profil
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled>
-          <Settings aria-hidden="true" className="mr-2 h-4 w-4" />
-          Sozlamalar
+          Profile
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -93,7 +87,7 @@ export function UserButton() {
           className="text-destructive focus:text-destructive"
         >
           <LogOut aria-hidden="true" className="mr-2 h-4 w-4" />
-          Chiqish
+          Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

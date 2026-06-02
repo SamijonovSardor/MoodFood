@@ -1,47 +1,39 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans, Caveat } from "next/font/google";
+import { Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 import { auth } from "@/lib/auth";
 import { AuthProvider } from "@/components/providers/auth-provider";
-import { GrainOverlay } from "@/components/sections/grain-overlay";
 
-const fraunces = Fraunces({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-fraunces",
-  axes: ["SOFT", "opsz"],
+  variable: "--font-inter",
 });
 
-const jakarta = Plus_Jakarta_Sans({
+const display = Instrument_Serif({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-jakarta",
-});
-
-const caveat = Caveat({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-caveat",
-  weight: ["400", "700"],
+  variable: "--font-display",
+  weight: "400",
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "MoodFood — Kayfiyatingizga mos taom",
+  title: "MoodFood — Discover the Perfect Meal for Your Mood",
   description:
-    "Hozirgi holatingizni ayting — biz sizga eng mos taomni topamiz. MoodFood bilan har bir kayfiyat o'z taomini topadi.",
+    "MoodFood uses AI to understand how you're feeling and recommend personalized meals and recipes. Discover meals based on mood, ingredients, and preferences.",
   keywords: [
     "mood food",
-    "kayfiyat",
-    "taom tavsiyasi",
     "AI",
-    "sun'iy intellekt",
-    "o'zbek",
+    "recipe",
+    "meal recommendations",
+    "food assistant",
   ],
   openGraph: {
-    title: "MoodFood — Kayfiyatingizga mos taom",
+    title: "MoodFood — Discover the Perfect Meal for Your Mood",
     description:
-      "Hozirgi holatingizni ayting — biz sizga eng mos taomni topamiz.",
+      "AI-powered food assistant that recommends meals based on your mood, ingredients, and preferences.",
     type: "website",
     locale: "uz_UZ",
   },
@@ -57,7 +49,7 @@ export default async function RootLayout({
   return (
     <html
       lang="uz"
-      className={`${fraunces.variable} ${jakarta.variable} ${caveat.variable}`}
+      className={`${inter.variable} ${display.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans antialiased">
@@ -65,9 +57,8 @@ export default async function RootLayout({
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-soft-lg"
         >
-          Asosiy kontentga o'tish
+          Skip to main content
         </a>
-        <GrainOverlay />
         <AuthProvider session={session}>{children}</AuthProvider>
       </body>
     </html>
