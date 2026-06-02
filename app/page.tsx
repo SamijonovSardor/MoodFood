@@ -1,27 +1,37 @@
-import { Navbar } from "@/components/sections/navbar";
-import { Hero } from "@/components/sections/hero";
-import { Features } from "@/components/sections/features";
-import { ProductShowcase } from "@/components/sections/product-showcase";
-import { HowItWorks } from "@/components/sections/how-it-works";
-import { WhyMoodFood } from "@/components/sections/why-moodfood";
-import { Faq } from "@/components/sections/faq";
+import { auth } from "@/lib/auth";
+import { Dashboard } from "@/components/sections/dashboard";
 import { Cta } from "@/components/sections/cta";
+import { Faq } from "@/components/sections/faq";
+import { Features } from "@/components/sections/features";
 import { Footer } from "@/components/sections/footer";
+import { Hero } from "@/components/sections/hero";
+import { HowItWorks } from "@/components/sections/how-it-works";
+import { Marquee } from "@/components/sections/marquee";
+import { Navbar } from "@/components/sections/navbar";
+import { ProductShowcase } from "@/components/sections/product-showcase";
+import { WhyMoodFood } from "@/components/sections/why-moodfood";
 
-export default function Home() {
+export default async function HomePage() {
+  const session = await auth();
+
+  if (session?.user?.isOnboarded) {
+    return <Dashboard />;
+  }
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <>
       <Navbar />
-      <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
+      <main id="main" tabIndex={-1}>
         <Hero />
+        <Marquee />
         <Features />
-        <ProductShowcase />
         <HowItWorks />
+        <ProductShowcase />
         <WhyMoodFood />
         <Faq />
         <Cta />
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
