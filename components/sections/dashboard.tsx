@@ -439,10 +439,10 @@ export function Dashboard() {
 
       {/* ─── Left Sidebar Navigation ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col p-3 border-r border-[#EAEAE6] bg-[#F9F9F6] transition-all duration-300
-          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:sticky md:top-0 md:h-screen md:p-6 shrink-0 justify-between
-          ${isCollapsed ? "md:w-20" : "md:w-64"}`}
+        className={`fixed inset-y-0 left-0 flex flex-col p-3 border-r border-[#EAEAE6] bg-[#F9F9F6] transition-all duration-300
+          ${isMobileOpen ? "translate-x-0 z-50" : "-translate-x-full z-40"}
+          md:translate-x-0 md:p-6 shrink-0 justify-between md:z-40
+          ${isCollapsed ? "w-20" : "w-64"}`}
       >
         <div className="flex flex-col gap-8">
           {/* Logo & Toggle Button */}
@@ -570,7 +570,11 @@ export function Dashboard() {
       </aside>
 
       {/* ─── Main Content Area (Right Side) ─── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+          isCollapsed ? "md:pl-20" : "md:pl-64"
+        }`}
+      >
         {/* Mobile Floating Trigger Header */}
         <header className="md:hidden flex items-center justify-between p-4 border-b border-[#EAEAE6] bg-[#FDFDFB] sticky top-0 z-30">
           <button
