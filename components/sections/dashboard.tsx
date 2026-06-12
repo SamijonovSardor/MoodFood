@@ -256,62 +256,92 @@ export function Dashboard() {
     );
   };
 
-  const handleAnalyzeMood = (e: React.FormEvent) => {
+  const handleAnalyzeMood = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!textInput.trim()) return;
 
     setAnalyzing(true);
     setAnalysisResult(null);
 
-    setTimeout(() => {
-      const text = textInput.toLowerCase();
-      let detectedMood = "happy"; // default
-      let detectedLabel = "Happy 😊";
+    const userTextInput = textInput.trim();
+    setTextInput("");
 
-      if (text.includes("charch") || text.includes("tired") || text.includes("holsiz") || text.includes("uyqu") || text.includes("charchadim") || text.includes("toliqdim")) {
-        detectedMood = "tired";
-        detectedLabel = "Tired 😴";
-      } else if (text.includes("stress") || text.includes("asab") || text.includes("siqil") || text.includes("g'azab") || text.includes("angry") || text.includes("asabiylash")) {
-        detectedMood = "stressed";
-        detectedLabel = "Stressed 😤";
-      } else if (text.includes("xafa") || text.includes("yomon") || text.includes("sad") || text.includes("ma'yus") || text.includes("yig'la") || text.includes("g'amgin")) {
-        detectedMood = "sad";
-        detectedLabel = "Sad 😔";
-      } else if (text.includes("tinch") || text.includes("xotirjam") || text.includes("relaxed") || text.includes("calm") || text.includes("dam ol") || text.includes("hordiq")) {
-        detectedMood = "relaxed";
-        detectedLabel = "Relaxed 😌";
-      } else if (text.includes("hayajon") || text.includes("excited") || text.includes("zo'r") || text.includes("a'lo") || text.includes("quvnoq") || text.includes("xursandman")) {
-        detectedMood = "excited";
-        detectedLabel = "Excited 🤩";
-      } else if (text.includes("yaxshi") || text.includes("happy") || text.includes("quvonch") || text.includes("xursand")) {
-        detectedMood = "happy";
-        detectedLabel = "Happy 😊";
-      } else {
-        const moodsList = ["happy", "relaxed", "tired", "sad", "stressed", "excited"];
-        detectedMood = moodsList[Math.floor(Math.random() * moodsList.length)];
-        const labels: Record<string, string> = {
-          happy: "Happy 😊",
-          relaxed: "Relaxed 😌",
-          tired: "Tired 😴",
-          sad: "Sad 😔",
-          stressed: "Stressed 😤",
-          excited: "Excited 🤩",
-        };
-        detectedLabel = labels[detectedMood];
+    try {
+      const response = await fetch("/api/analyze-mood", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: userTextInput }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.mood && data.label) {
+          setSelectedMood(data.mood);
+          setAnalysisResult(`Detected mood: ${data.label}`);
+
+          // Also append a nice message in the chat
+          setChatMessages((prev) => [
+            ...prev,
+            { sender: "user", text: `I analyzed my mood: "${userTextInput}"` },
+            { sender: "ai", text: `I detected your mood is "${data.label}". Below I have updated your recipe recommendations based on how you feel! 🍽️` }
+          ]);
+          setAnalyzing(false);
+          return;
+        }
       }
+    } catch (err) {
+      console.error("Error calling analyze-mood API:", err);
+    }
 
-      setSelectedMood(detectedMood);
-      setAnalysisResult(`Detected mood: ${detectedLabel}`);
-      setAnalyzing(false);
+    // Fallback: Local Keyword Heuristic
+    const text = userTextInput.toLowerCase();
+    let detectedMood = "happy"; // default
+    let detectedLabel = "Happy 😊";
 
-      // Also append a nice message in the chat
-      setChatMessages((prev) => [
-        ...prev,
-        { sender: "user", text: `I analyzed my mood: "${textInput}"` },
-        { sender: "ai", text: `I detected your mood is "${detectedLabel}". Below I have updated your recipe recommendations based on how you feel! 🍽️` }
-      ]);
-      setTextInput("");
-    }, 1200);
+    if (text.includes("charch") || text.includes("tired") || text.includes("holsiz") || text.includes("uyqu") || text.includes("charchadim") || text.includes("toliqdim")) {
+      detectedMood = "tired";
+      detectedLabel = "Tired 😴";
+    } else if (text.includes("stress") || text.includes("asab") || text.includes("siqil") || text.includes("g'azab") || text.includes("angry") || text.includes("asabiylash")) {
+      detectedMood = "stressed";
+      detectedLabel = "Stressed 😤";
+    } else if (text.includes("xafa") || text.includes("yomon") || text.includes("sad") || text.includes("ma'yus") || text.includes("yig'la") || text.includes("g'amgin")) {
+      detectedMood = "sad";
+      detectedLabel = "Sad 😔";
+    } else if (text.includes("tinch") || text.includes("xotirjam") || text.includes("relaxed") || text.includes("calm") || text.includes("dam ol") || text.includes("hordiq")) {
+      detectedMood = "relaxed";
+      detectedLabel = "Relaxed 😌";
+    } else if (text.includes("hayajon") || text.includes("excited") || text.includes("zo'r") || text.includes("a'lo") || text.includes("quvnoq") || text.includes("xursandman")) {
+      detectedMood = "excited";
+      detectedLabel = "Excited 🤩";
+    } else if (text.includes("yaxshi") || text.includes("happy") || text.includes("quvonch") || text.includes("xursand")) {
+      detectedMood = "happy";
+      detectedLabel = "Happy 😊";
+    } else {
+      const moodsList = ["happy", "relaxed", "tired", "sad", "stressed", "excited"];
+      detectedMood = moodsList[Math.floor(Math.random() * moodsList.length)];
+      const labels: Record<string, string> = {
+        happy: "Happy 😊",
+        relaxed: "Relaxed 😌",
+        tired: "Tired 😴",
+        sad: "Sad 😔",
+        stressed: "Stressed 😤",
+        excited: "Excited 🤩",
+      };
+      detectedLabel = labels[detectedMood];
+    }
+
+    setSelectedMood(detectedMood);
+    setAnalysisResult(`Detected mood (heuristic): ${detectedLabel}`);
+
+    // Also append a nice message in the chat
+    setChatMessages((prev) => [
+      ...prev,
+      { sender: "user", text: `I analyzed my mood: "${userTextInput}"` },
+      { sender: "ai", text: `I detected your mood is "${detectedLabel}". Below I have updated your recipe recommendations based on how you feel! 🍽️` }
+    ]);
+    setAnalyzing(false);
   };
 
   // AI Chat submission handler
@@ -440,52 +470,66 @@ export function Dashboard() {
 
       {/* ─── Left Sidebar Navigation ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 flex flex-col p-3 border-r border-[#EAEAE6] bg-[#F9F9F6] transition-all duration-300
+        className={`fixed inset-y-0 left-0 flex flex-col border-r border-[#EAEAE6] bg-[#F9F9F6] transition-all duration-300
           ${isMobileOpen ? "translate-x-0 z-50" : "-translate-x-full z-40"}
-          md:translate-x-0 md:p-6 shrink-0 justify-between md:z-40
-          ${isCollapsed ? "w-20" : "w-64"}`}
+          md:translate-x-0 shrink-0 justify-between md:z-40
+          ${isCollapsed ? "w-[68px]" : "w-64"}`}
       >
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6 px-3 pt-5">
           {/* Logo & Toggle Button */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              {isCollapsed ? (
-                <span className="text-xl font-display font-bold tracking-tight text-[#16A34A] italic">
-                  M<span className="text-[#0C0C0C]">F</span>
-                </span>
-              ) : (
-                <>
-                  <span className="text-xl font-display font-bold tracking-tight md:hidden text-[#16A34A] italic">
-                    M<span className="text-[#0C0C0C]">F</span>
-                  </span>
-                  <span className="text-xl font-display font-bold tracking-tight hidden md:inline">
-                    Mood<span className="text-[#16A34A] italic font-semibold">Food</span>
-                  </span>
-                </>
-              )}
-            </div>
+          <div className="relative flex items-center h-8 px-1 group/logo">
+            {/* Unified Logo — M and F stay in place, "ood" parts animate */}
+            <span className="text-xl font-display font-bold tracking-tight whitespace-nowrap select-none">
+              <span className="text-[#0C0C0C]">M</span>
+              <span
+                className="inline-block overflow-hidden align-bottom transition-all duration-300 ease-in-out"
+                style={{ width: isCollapsed ? 0 : '38px', opacity: isCollapsed ? 0 : 1 }}
+              >
+                <span className="text-[#0C0C0C]">ood</span>
+              </span>
+              <span className="text-[#16A34A] italic font-semibold">F</span>
+              <span
+                className="inline-block overflow-hidden align-bottom transition-all duration-300 ease-in-out"
+                style={{ width: isCollapsed ? 0 : '42px', opacity: isCollapsed ? 0 : 1 }}
+              >
+                <span className="text-[#16A34A] italic font-semibold pl-[1px]">ood</span>
+              </span>
+            </span>
 
-            {/* Desktop Collapse Toggle (visible on md+) */}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#F3F3EF] active:bg-[#EAEAE6] transition-all text-[#5A5A57] hover:text-[#0C0C0C] bg-transparent border-none focus:outline-none cursor-pointer"
-              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-              {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-            </button>
+            {/* Collapse toggle — overlays logo on hover when collapsed */}
+            {isCollapsed && (
+              <button
+                onClick={() => setIsCollapsed(false)}
+                className="absolute inset-0 hidden md:flex items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-all duration-200 text-[#5A5A57] hover:text-[#0C0C0C] rounded-lg hover:bg-[#F3F3EF] active:bg-[#EAEAE6] bg-transparent border-none focus:outline-none cursor-pointer"
+                title="Expand Sidebar"
+              >
+                <PanelLeftOpen className="h-5 w-5" />
+              </button>
+            )}
 
-            {/* Mobile Close Button (visible on mobile only) */}
+            {/* Collapse button when expanded */}
+            {!isCollapsed && (
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="hidden md:flex ml-auto h-8 w-8 items-center justify-center rounded-lg hover:bg-[#F3F3EF] active:bg-[#EAEAE6] transition-all duration-200 text-[#5A5A57] hover:text-[#0C0C0C] bg-transparent border-none focus:outline-none cursor-pointer shrink-0"
+                title="Collapse Sidebar"
+              >
+                <PanelLeftClose className="h-5 w-5" />
+              </button>
+            )}
+
+            {/* Mobile Close Button */}
             <button
               onClick={() => setIsMobileOpen(false)}
-              className="md:hidden h-8 w-8 flex items-center justify-center rounded-lg border border-[#EAEAE6] hover:bg-[#F3F3EF] text-[#5A5A57] text-lg font-bold"
+              className="md:hidden ml-auto h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#F3F3EF] active:bg-[#EAEAE6] text-[#5A5A57] hover:text-[#0C0C0C] bg-transparent border-none transition-all duration-200 cursor-pointer shrink-0"
               title="Close Menu"
             >
-              ×
+              <PanelLeftClose className="h-5 w-5" />
             </button>
           </div>
 
           {/* Navigation Options */}
-          <nav className="flex flex-col gap-1.5">
+          <nav className="flex flex-col gap-1">
             {[
               { id: "main", label: "Main", icon: Home },
               { id: "fridge", label: "Refrigerator", icon: Camera },
@@ -500,11 +544,9 @@ export function Dashboard() {
                   onClick={() => {
                     setActiveTab(item.id as any);
                     setActiveRecipe(null);
-                    setIsMobileOpen(false); // Close mobile menu on select
+                    setIsMobileOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
-                    isCollapsed ? "md:justify-center" : "md:justify-start"
-                  } ${
+                  className={`w-full flex items-center gap-3 h-10 px-3 rounded-xl text-sm font-semibold transition-colors duration-200 relative overflow-hidden ${
                     active
                       ? "bg-[#16A34A] text-white"
                       : "text-[#5A5A57] hover:bg-[#F3F3EF] hover:text-[#0C0C0C]"
@@ -512,7 +554,9 @@ export function Dashboard() {
                   title={item.label}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
-                  {(!isCollapsed || isMobileOpen) && <span>{item.label}</span>}
+                  <span className={`whitespace-nowrap transition-opacity duration-200 ${isCollapsed && !isMobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+                    {item.label}
+                  </span>
                   {item.id === "saved" && savedMeals.length > 0 && (
                     <>
                       {(!isCollapsed || isMobileOpen) && (
@@ -525,9 +569,8 @@ export function Dashboard() {
                         </span>
                       )}
                       {isCollapsed && !isMobileOpen && (
-                        <span className="hidden md:block absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500" />
+                        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500" />
                       )}
-                      <span className="md:hidden absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500" />
                     </>
                   )}
                 </button>
@@ -537,16 +580,14 @@ export function Dashboard() {
         </div>
 
         {/* Bottom Profile and Logout Actions */}
-        <div className="flex flex-col gap-1.5 pt-4 border-t border-[#EAEAE6]">
+        <div className="flex flex-col gap-1 px-3 pb-5 pt-4 border-t border-[#EAEAE6]">
           <button
             onClick={() => {
               setActiveTab("profile");
               setActiveRecipe(null);
               setIsMobileOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-semibold transition-all relative group ${
-              isCollapsed ? "md:justify-center" : "md:justify-start"
-            } ${
+            className={`w-full flex items-center gap-3 h-10 px-3 rounded-xl text-sm font-semibold transition-colors duration-200 ${
               activeTab === "profile"
                 ? "bg-[#16A34A] text-white"
                 : "text-[#5A5A57] hover:bg-[#F3F3EF] hover:text-[#0C0C0C]"
@@ -554,18 +595,20 @@ export function Dashboard() {
             title="Profile Insights"
           >
             <User className="h-5 w-5 shrink-0" />
-            {(!isCollapsed || isMobileOpen) && <span>Profile</span>}
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${isCollapsed && !isMobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+              Profile
+            </span>
           </button>
 
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-all ${
-              isCollapsed ? "md:justify-center" : "md:justify-start"
-            }`}
+            className={`w-full flex items-center gap-3 h-10 px-3 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors duration-200`}
             title="Sign Out"
           >
             <LogOut className="h-5 w-5 shrink-0" />
-            {(!isCollapsed || isMobileOpen) && <span>Sign Out</span>}
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${isCollapsed && !isMobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
+              Sign Out
+            </span>
           </button>
         </div>
       </aside>
@@ -573,7 +616,7 @@ export function Dashboard() {
       {/* ─── Main Content Area (Right Side) ─── */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-          isCollapsed ? "md:pl-20" : "md:pl-64"
+          isCollapsed ? "md:pl-[68px]" : "md:pl-64"
         }`}
       >
         {/* Mobile Floating Trigger Header */}
@@ -611,24 +654,24 @@ export function Dashboard() {
               </section>
 
               {/* Main-app splits */}
-              <div className="grid lg:grid-cols-12 gap-8 items-start">
+              <div className="w-full flex flex-col gap-6">
                 
-                {/* Mood Detection and Cards (Spans 7 columns) */}
-                <div className="lg:col-span-7 flex flex-col gap-6">
+                {/* Mood Detection and Cards (Full Width) */}
+                <div className="w-full flex flex-col gap-6">
                   
                   {/* Mood Analyzer Input Box */}
                   <div className="rounded-3xl border border-[#EAEAE6] bg-white p-6 shadow-soft-sm flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-[#16A34A]" />
                       <h3 className="text-base font-semibold text-[#0C0C0C]">
-                        Mood Analyzer (AI Kayfiyat Tahlili)
+                        Mood Analyzer (AI Mood Analysis)
                       </h3>
                     </div>
                     <form onSubmit={handleAnalyzeMood} className="flex flex-col gap-3">
                       <textarea
                         value={textInput}
                         onChange={(e) => setTextInput(e.target.value)}
-                        placeholder="Bugungi kuningiz qanday o'tdi? Nimalarni his qilyapsiz? (Masalan: Bugun juda charchadim, mazza qilib dam oldim, asabiylashdim, hursandman...)"
+                        placeholder="How was your day? What are you feeling? (For example: Today I am tired, had a great rest, feeling stressed, happy...)"
                         className="w-full min-h-[100px] p-4 rounded-2xl border border-[#EAEAE6] bg-[#F9F9F6] text-sm focus:outline-none focus:ring-1 focus:ring-[#16A34A] transition-all resize-none"
                       />
                       <Button
@@ -663,7 +706,7 @@ export function Dashboard() {
                     <h4 className="text-xs font-bold uppercase tracking-wider text-[#A1A19D]">
                       Quick Select Mood
                     </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                       {[
                         { id: "happy", emoji: "😊", label: "Happy", color: "hover:border-emerald-300 hover:bg-emerald-50/20" },
                         { id: "relaxed", emoji: "😌", label: "Relaxed", color: "hover:border-blue-300 hover:bg-blue-50/20" },
@@ -693,60 +736,6 @@ export function Dashboard() {
                     </div>
                   </div>
 
-                </div>
-
-                {/* AI Companion Sidebar Chatbot (Spans 5 columns) */}
-                <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div id="ai-assistant" className="rounded-3xl border border-[#EAEAE6] bg-white shadow-soft-sm overflow-hidden flex flex-col min-h-[320px]">
-                    <div className="border-b border-[#EAEAE6] px-4 py-3 bg-[#F9F9F6] flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-[#16A34A] animate-pulse" />
-                      <h3 className="text-xs font-bold text-[#0C0C0C] flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-[#16A34A]" />
-                        AI Companion Chat
-                      </h3>
-                    </div>
-
-                    <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3 text-xs max-h-[220px]">
-                      {chatMessages.map((msg, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex flex-col gap-1 max-w-[85%] ${
-                            msg.sender === "user" ? "ml-auto items-end" : "mr-auto items-start"
-                          }`}
-                        >
-                          <div
-                            className={`p-2.5 rounded-2xl leading-relaxed ${
-                              msg.sender === "user"
-                                ? "bg-[#16A34A] text-white rounded-tr-none"
-                                : "bg-[#F3F3EF] text-[#0C0C0C] rounded-tl-none border border-[#EAEAE6]"
-                            }`}
-                          >
-                            {msg.text}
-                          </div>
-                        </div>
-                      ))}
-                      {aiTyping && (
-                        <div className="mr-auto items-start flex gap-1 p-2 rounded-xl bg-[#F3F3EF] border border-[#EAEAE6] text-muted-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin text-[#16A34A]" />
-                          Typing...
-                        </div>
-                      )}
-                      <div ref={chatEndRef} />
-                    </div>
-
-                    <form onSubmit={handleChatSubmit} className="p-2.5 border-t border-[#EAEAE6] flex gap-2">
-                      <input
-                        type="text"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="I'm tired, recommend something..."
-                        className="flex-1 h-9 px-3 rounded-xl border border-[#EAEAE6] bg-[#F9F9F6] text-xs focus:outline-none"
-                      />
-                      <button type="submit" className="h-9 w-9 bg-[#16A34A] text-white flex items-center justify-center rounded-xl">
-                        <Send className="h-3.5 w-3.5" />
-                      </button>
-                    </form>
-                  </div>
                 </div>
 
               </div>

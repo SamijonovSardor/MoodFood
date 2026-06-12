@@ -1,9 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 export function Cta() {
+  const handleOpenAuth = () => {
+    window.dispatchEvent(new CustomEvent("open-auth-modal"));
+  };
+
   return (
     <section id="boshladik" className="py-20 md:py-24">
       <div className="container">
@@ -56,12 +62,10 @@ export function Cta() {
               perfect meal.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button asChild size="xl" variant="white">
-                <Link href="/sign-up">
-                  <span aria-hidden="true">🍴</span>
-                  Get Started Free
-                  <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
-                </Link>
+              <Button size="xl" variant="white" onClick={handleOpenAuth}>
+                <span aria-hidden="true">🍴</span>
+                Get Started Free
+                <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
               </Button>
               <Button
                 asChild

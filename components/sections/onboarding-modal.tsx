@@ -25,12 +25,12 @@ const cuisines = [
 ];
 
 const moods = [
-  { emoji: "😊", label: "Xursand", id: "happy" },
-  { emoji: "😔", label: "Xafa", id: "sad" },
-  { emoji: "😴", label: "Charchagan", id: "tired" },
-  { emoji: "😌", label: "Xotirjam", id: "calm" },
-  { emoji: "😰", label: "Bezovta", id: "anxious" },
-  { emoji: "🤩", label: "Hayajonda", id: "excited" },
+  { emoji: "😊", label: "Happy", id: "happy" },
+  { emoji: "😔", label: "Sad", id: "sad" },
+  { emoji: "😴", label: "Tired", id: "tired" },
+  { emoji: "😌", label: "Calm", id: "calm" },
+  { emoji: "😰", label: "Anxious", id: "anxious" },
+  { emoji: "🤩", label: "Excited", id: "excited" },
 ];
 
 export function OnboardingModal() {
@@ -110,7 +110,7 @@ export function OnboardingModal() {
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Profil sozlamalari · {step}/3-qadam
+              Profile Setup · Step {step}/3
             </p>
           </div>
           {step > 1 && (
@@ -119,7 +119,7 @@ export function OnboardingModal() {
               className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition"
             >
               <ArrowLeft className="h-4 w-4" />
-              Orqaga
+              Back
             </button>
           )}
         </div>
@@ -130,11 +130,11 @@ export function OnboardingModal() {
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-display font-bold text-foreground">
-                Sevimli oshxonangiz?
+                Your favorite cuisines?
               </h2>
             </div>
             <p className="text-sm text-muted-foreground mt-2 mb-6">
-              Sizga yoqadigan milliy taomlarni belgilang. Bir nechta tanlashingiz mumkin.
+              Select national cuisines you enjoy. You can choose multiple.
             </p>
 
             <div className="grid grid-cols-2 gap-3 mb-8">
@@ -172,7 +172,7 @@ export function OnboardingModal() {
                 className="w-full h-12 rounded-full"
                 disabled={selectedCuisines.length === 0}
               >
-                Keyingi qadam
+                Next step
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -185,11 +185,11 @@ export function OnboardingModal() {
             <div className="flex items-center gap-2">
               <Camera className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-display font-bold text-foreground">
-                Muzlatgichda nima bor?
+                What's in your fridge?
               </h2>
             </div>
             <p className="text-sm text-muted-foreground mt-2 mb-6">
-              Uydagi mahsulotlardan foydali taomlar taklif qilishimiz uchun rasmini yuklang (o'tkazib yuborish mumkin).
+              Upload a picture of your ingredients so we can suggest matching recipes (optional).
             </p>
 
             <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-primary/50 transition rounded-2xl bg-muted/30 p-6 mb-8 relative group min-h-[180px]">
@@ -198,7 +198,7 @@ export function OnboardingModal() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={fridgeImage}
-                    alt="Muzlatgich"
+                    alt="Fridge"
                     className="max-h-[140px] rounded-xl object-cover border"
                   />
                   <button
@@ -214,7 +214,7 @@ export function OnboardingModal() {
                     <Upload className="h-5 w-5" />
                   </div>
                   <span className="text-sm font-semibold text-foreground">
-                    Rasm tanlang yoki sudrab keling
+                    Choose an image or drag it here
                   </span>
                   <span className="text-xs text-muted-foreground mt-1">
                     PNG, JPG (max 5MB)
@@ -238,13 +238,13 @@ export function OnboardingModal() {
                 }}
                 className="flex-1 h-12 rounded-full"
               >
-                O'tkazib yuborish
+                Skip
               </Button>
               <Button
                 onClick={() => setStep(3)}
                 className="flex-1 h-12 rounded-full"
               >
-                Davom etish
+                Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -257,11 +257,11 @@ export function OnboardingModal() {
             <div className="flex items-center gap-2">
               <Smile className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-display font-bold text-foreground">
-                Hozirgi kayfiyatingiz?
+                How are you feeling?
               </h2>
             </div>
             <p className="text-sm text-muted-foreground mt-2 mb-6">
-              Bugun qanday his qilyapsiz? Mos keladiganini tanlang (o'tkazib yuborish mumkin).
+              How are you feeling today? Choose one that fits (optional).
             </p>
 
             <div className="grid grid-cols-3 gap-3 mb-8">
@@ -296,7 +296,7 @@ export function OnboardingModal() {
                 }}
                 className="flex-1 h-12 rounded-full"
               >
-                O'tkazib yuborish
+                Skip
               </Button>
               <Button
                 disabled={loading}
@@ -306,7 +306,7 @@ export function OnboardingModal() {
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : null}
-                Tugatish
+                Finish
               </Button>
             </div>
           </div>

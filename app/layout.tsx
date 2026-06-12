@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { RevealProvider } from "@/components/providers/reveal-provider";
 import { OnboardingModal } from "@/components/sections/onboarding-modal";
+import { AuthModal } from "@/components/sections/auth-modal";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -60,6 +61,7 @@ export default async function RootLayout({
           <RevealProvider>
             {children}
             <OnboardingModal />
+            <AuthModal />
           </RevealProvider>
         </AuthProvider>
       </body>

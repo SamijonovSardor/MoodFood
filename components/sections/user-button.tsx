@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { LogIn, LogOut, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,10 @@ function getInitials(name?: string | null) {
 export function UserButton() {
   const { data: session, status } = useSession();
 
+  const handleOpenAuth = () => {
+    window.dispatchEvent(new CustomEvent("open-auth-modal"));
+  };
+
   if (status === "loading") {
     return <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />;
   }
@@ -37,7 +41,7 @@ export function UserButton() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => signIn("google", { callbackUrl: "/" })}
+        onClick={handleOpenAuth}
       >
         <LogIn aria-hidden="true" className="mr-2 h-4 w-4" />
         Sign In
