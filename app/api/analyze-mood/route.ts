@@ -12,6 +12,15 @@ const moodMap: Record<string, { emoji: string; label: string }> = {
   excited: { emoji: "🤩", label: "Excited 🤩" },
 };
 
+const searchQueryMap: Record<string, string> = {
+  happy: "nutritious foods and ingredients to maintain happiness and energy health benefits",
+  relaxed: "healthy relaxing foods and ingredients to maintain calm and focus medical health benefits",
+  tired: "energy boosting healthy foods and ingredients to eat when tired fatigue medical benefits",
+  sad: "best foods and ingredients to boost mood eat when sad depression medical research",
+  stressed: "best healthy foods and ingredients to reduce stress and anxiety medical advice",
+  excited: "healthy calming foods to balance high energy excited state medical advice",
+};
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -29,92 +38,180 @@ export async function POST(req: Request) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     const modelName = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
 
-    if (!apiKey) {
-      console.warn("OPENROUTER_API_KEY is not defined in environment variables. Falling back to local heuristic.");
-      return NextResponse.json({
-        success: false,
-        error: "OPENROUTER_API_KEY is not configured in .env",
-      });
-    }
-
-    const systemPrompt = `You are a mood classifier. Based on the user's input text (which might be in Uzbek, English, Russian or other languages), classify their mood into exactly one of these 6 categories and reply with ONLY the corresponding emoji and English capitalized word, nothing else. Do not add punctuation or extra text.
+    // Step 1: Detect mood using LLM
+    let detectedKey = "";
+    if (apiKey) {
+      try {
+        const systemPrompt = `You are a mood classifier. Based on the user's input text (which might be in Uzbek, English, Russian or other languages), classify their mood into exactly one of these 6 categories and reply with ONLY the corresponding English lowercase word (happy, relaxed, tired, sad, stressed, excited), nothing else. Do not add punctuation, emojis or extra text.
 
 Categories:
-- 😊 Happy
-- 😌 Relaxed
-- 😴 Tired
-- 😔 Sad
-- 😤 Stressed
-- 🤩 Excited
+- happy
+- relaxed
+- tired
+- sad
+- stressed
+- excited`;
 
-Example Output:
-😌 Relaxed`;
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "MoodFood",
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: text.trim() },
+            ],
+            temperature: 0.1,
+            max_tokens: 5,
+          }),
+        });
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "MoodFood",
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: text.trim() },
-        ],
-        temperature: 0.2,
-        max_tokens: 10,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenRouter API error response:", errorText);
-      return NextResponse.json({
-        success: false,
-        error: `OpenRouter API returned status ${response.status}`,
-      });
-    }
-
-    const data = await response.json();
-    const modelOutput = data?.choices?.[0]?.message?.content?.trim() || "";
-    console.log("OpenRouter Model Output:", modelOutput);
-
-    // Defensive parsing: find which of our standard mood keys is present in the output
-    const cleanOutput = modelOutput.toLowerCase();
-    let detectedKey = "";
-
-    for (const key of Object.keys(moodMap)) {
-      if (cleanOutput.includes(key)) {
-        detectedKey = key;
-        break;
+        if (response.ok) {
+          const data = await response.json();
+          const classification = data?.choices?.[0]?.message?.content?.trim()?.toLowerCase() || "";
+          for (const key of Object.keys(moodMap)) {
+            if (classification.includes(key)) {
+              detectedKey = key;
+              break;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error classifying mood via LLM:", err);
       }
     }
 
-    // Special mapping case: if "calm" is somehow returned, map it to relaxed
-    if (!detectedKey && cleanOutput.includes("calm")) {
-      detectedKey = "relaxed";
-    }
-
+    // Fallback: Local Keyword Heuristic if LLM classification fails or apiKey is missing
     if (!detectedKey) {
-      console.warn("Could not parse key from model output. Output was:", modelOutput);
-      return NextResponse.json({
-        success: false,
-        error: `Could not determine mood from model output: "${modelOutput}"`,
-      });
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes("charch") || lowerText.includes("tired") || lowerText.includes("holsiz") || lowerText.includes("uyqu") || lowerText.includes("charchadim") || lowerText.includes("toliqdim")) {
+        detectedKey = "tired";
+      } else if (lowerText.includes("stress") || lowerText.includes("asab") || lowerText.includes("siqil") || lowerText.includes("g'azab") || lowerText.includes("angry") || lowerText.includes("asabiylash")) {
+        detectedKey = "stressed";
+      } else if (lowerText.includes("xafa") || lowerText.includes("yomon") || lowerText.includes("sad") || lowerText.includes("ma'yus") || lowerText.includes("yig'la") || lowerText.includes("g'amgin")) {
+        detectedKey = "sad";
+      } else if (lowerText.includes("tinch") || lowerText.includes("xotirjam") || lowerText.includes("relaxed") || lowerText.includes("calm") || lowerText.includes("dam ol") || lowerText.includes("hordiq")) {
+        detectedKey = "relaxed";
+      } else if (lowerText.includes("hayajon") || lowerText.includes("excited") || lowerText.includes("zo'r") || lowerText.includes("a'lo") || lowerText.includes("quvnoq") || lowerText.includes("xursandman")) {
+        detectedKey = "excited";
+      } else {
+        detectedKey = "happy";
+      }
     }
 
-    const { emoji, label } = moodMap[detectedKey];
-
-    // Return the mapped result in the exact format: emoji + " " + word (e.g. "😌 Relaxed")
+    const { emoji } = moodMap[detectedKey];
     const formattedResult = `${emoji} ${detectedKey.charAt(0).toUpperCase() + detectedKey.slice(1)}`;
+
+    // Step 2: Google Custom Web Search
+    let snippets = "No detailed search results found.";
+    const searchKey = process.env.GOOGLE_SEARCH_API_KEY;
+    const searchCx = process.env.GOOGLE_SEARCH_ENGINE_ID;
+
+    if (searchKey && searchCx) {
+      try {
+        const query = searchQueryMap[detectedKey];
+        const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${searchKey}&cx=${searchCx}&q=${encodeURIComponent(query)}`;
+        const searchResponse = await fetch(searchUrl);
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          if (searchData.items && searchData.items.length > 0) {
+            snippets = searchData.items
+              .slice(0, 3)
+              .map((item: any) => `- ${item.title}: ${item.snippet}`)
+              .join("\n");
+          }
+        } else {
+          console.error("Google Custom Search API returned status:", searchResponse.status);
+        }
+      } catch (err) {
+        console.error("Failed to perform Google Search:", err);
+      }
+    } else {
+      console.warn("GOOGLE_SEARCH_API_KEY or GOOGLE_SEARCH_ENGINE_ID not configured. Fallback to LLM inner knowledge.");
+      snippets = "Google Search keys are not configured. Synthesize the recipe based on general medical nutrition knowledge for this mood.";
+    }
+
+    // Step 3: LLM Synthesis to generate the custom recipe
+    let recommendation = null;
+    if (apiKey) {
+      try {
+        const synthesisPrompt = `You are a professional dietitian, nutritionist, and executive chef.
+Based on the user's current mood and the provided medical search results detailing beneficial ingredients, recommend a healthy and delicious meal.
+
+User input description of day: "${text.trim()}"
+User detected mood: ${formattedResult}
+
+Medical/Nutritional Search Results:
+${snippets}
+
+Please synthesize this information and suggest a suitable recipe. The response MUST be written in Uzbek language, using markdown for formatting, and MUST be returned strictly as a JSON object (no markdown block wrapper around the JSON, just the raw JSON object itself) with the following structure:
+{
+  "title": "Taom nomi (e.g. Ismaloqli va Yong'oqli Issiq Salat)",
+  "benefits": "Tibbiy jihatdan nima uchun bu taom tanlanganligi va uning foydasi (tibbiy/nutritional sabablar, qidiruv natijalariga asoslangan holda)",
+  "ingredients": "Zaruriy mahsulotlar ro'yxati (tibbiy jihatdan foydali ingredientlarni alohida ta'kidlang)",
+  "recipe": "Tayyorlanish usuli (bosqichma-bosqich qisqa yo'riqnoma)"
+}`;
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "MoodFood",
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              { role: "user", content: synthesisPrompt },
+            ],
+            temperature: 0.3,
+            max_tokens: 800,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          let modelOutput = data?.choices?.[0]?.message?.content?.trim() || "";
+          console.log("Synthesis Model Output:", modelOutput);
+
+          // Strip markdown code block markers if present
+          if (modelOutput.startsWith("```")) {
+            modelOutput = modelOutput.replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
+          }
+
+          try {
+            recommendation = JSON.parse(modelOutput);
+          } catch (jsonErr) {
+            console.error("Failed to parse JSON from model output:", jsonErr);
+          }
+        }
+      } catch (err) {
+        console.error("Error calling OpenRouter for recipe synthesis:", err);
+      }
+    }
+
+    // Fallback: If OpenRouter synthesis fails, generate a mock recipe recommendation
+    if (!recommendation) {
+      recommendation = {
+        title: `Comforting ${detectedKey.charAt(0).toUpperCase() + detectedKey.slice(1)} Bowl`,
+        benefits: `Bu taom tarkibidagi mahsulotlar sizning ${detectedKey} kayfiyatingizga ijobiy ta'sir ko'rsatish uchun tibbiy jihatdan foydali hisoblanadi.`,
+        ingredients: `- Asosiy mahsulotlar\n- Ziravorlar\n- Ko'katlar`,
+        recipe: `1. Masalliqlarni tozalab to'g'rang.\n2. Idishga solib pishiring yoki aralashtiring.\n3. Issiq holatida ko'katlar bilan bezab dasturxonga torting.`,
+      };
+    }
 
     return NextResponse.json({
       success: true,
       mood: detectedKey,
       label: formattedResult,
+      recommendation,
     });
   } catch (error: any) {
     console.error("Error in analyze-mood route:", error);

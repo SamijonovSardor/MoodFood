@@ -214,6 +214,7 @@ export function Dashboard() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [savedMeals, setSavedMeals] = useState<string[]>(["h2"]); // Default saved
   const [activeRecipe, setActiveRecipe] = useState<Meal | null>(null);
+  const [healthRecommendation, setHealthRecommendation] = useState<{ title: string; benefits: string; ingredients: string; recipe: string } | null>(null);
 
   // Mood Analyzer states
   const [textInput, setTextInput] = useState("");
@@ -262,6 +263,7 @@ export function Dashboard() {
 
     setAnalyzing(true);
     setAnalysisResult(null);
+    setHealthRecommendation(null);
 
     const userTextInput = textInput.trim();
     setTextInput("");
@@ -280,6 +282,7 @@ export function Dashboard() {
         if (data.success && data.mood && data.label) {
           setSelectedMood(data.mood);
           setAnalysisResult(`Detected mood: ${data.label}`);
+          setHealthRecommendation(data.recommendation || null);
 
           // Also append a nice message in the chat
           setChatMessages((prev) => [
@@ -720,6 +723,7 @@ export function Dashboard() {
                           onClick={() => {
                             setSelectedMood(selectedMood === m.id ? null : m.id);
                             setAnalysisResult(selectedMood === m.id ? null : `Manual select: ${m.label} ${m.emoji}`);
+                            setHealthRecommendation(null);
                           }}
                           className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-soft-sm ${
                             selectedMood === m.id
@@ -760,6 +764,50 @@ export function Dashboard() {
                     <p className="text-xs text-[#5A5A57] mt-1 max-w-xs">
                       Use the Mood Analyzer text box or select a quick card above to get instant personalized recipe suggestions.
                     </p>
+                  </div>
+                ) : healthRecommendation ? (
+                  // Text-only Custom Health Recommendation
+                  <div className="w-full rounded-3xl border border-[#16A34A]/20 bg-gradient-to-br from-[#16A34A]/5 to-[#16A34A]/10 p-6 sm:p-8 flex flex-col gap-6 shadow-soft animate-in fade-in duration-300">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#16A34A] flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-[#16A34A] animate-pulse" />
+                        🩺 Tibbiy Tadqiqotlarga Asoslangan Tavsiya (AI)
+                      </span>
+                      <h3 className="text-2xl font-display font-bold text-[#0C0C0C]">
+                        {healthRecommendation.title}
+                      </h3>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-[#EAEAE6]">
+                      <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-[#5A5A57]">
+                            🩺 Tibbiy/Ozuqaviy Foydasi
+                          </h4>
+                          <p className="text-xs text-[#0C0C0C] leading-relaxed bg-white/70 p-4 rounded-2xl border border-[#EAEAE6] shadow-soft-sm">
+                            {healthRecommendation.benefits}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-[#5A5A57]">
+                            🛒 Zaruriy Masalliqlar
+                          </h4>
+                          <div className="text-xs text-[#0C0C0C] whitespace-pre-line leading-relaxed bg-white/70 p-4 rounded-2xl border border-[#EAEAE6] shadow-soft-sm">
+                            {healthRecommendation.ingredients}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-[#5A5A57]">
+                          🍳 Tayyorlanish Usuli
+                        </h4>
+                        <div className="text-xs text-[#0C0C0C] whitespace-pre-line leading-relaxed bg-white/70 p-4 rounded-2xl border border-[#EAEAE6] shadow-soft-sm">
+                          {healthRecommendation.recipe}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5 animate-in fade-in zoom-in-95 duration-200">
