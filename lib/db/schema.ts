@@ -13,6 +13,7 @@ export const users = sqliteTable("user", {
   preferredCuisines: text("preferredCuisines"), // comma separated or JSON string
   fridgeImage: text("fridgeImage"), // url of uploaded fridge image
   currentMood: text("currentMood"), // user mood choice during onboarding
+  fridgeIngredients: text("fridgeIngredients"), // JSON array of ingredients in the fridge
 });
 
 export const accounts = sqliteTable(

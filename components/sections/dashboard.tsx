@@ -251,6 +251,35 @@ export function Dashboard() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages, aiTyping]);
 
+  useEffect(() => {
+    const fetchFridge = async () => {
+      try {
+        const response = await fetch("/api/fridge");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.ingredients)) {
+            setIngredients(data.ingredients);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching fridge ingredients:", err);
+      }
+    };
+    fetchFridge();
+  }, []);
+
+  const saveIngredientsToServer = async (list: typeof ingredients) => {
+    try {
+      await fetch("/api/fridge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: list }),
+      });
+    } catch (err) {
+      console.error("Failed to save ingredients to server:", err);
+    }
+  };
+
   const toggleSaveMeal = (id: string) => {
     setSavedMeals((prev) =>
       prev.includes(id) ? prev.filter((mId) => mId !== id) : [...prev, id]
@@ -376,55 +405,85 @@ export function Dashboard() {
     }, 1500);
   };
 
-  // Upload/Scan Fridge simulation
+  // Real Refrigerator Scan via AI Vision
   const handleFridgeScan = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setScanning(true);
-    setFridgeImage(URL.createObjectURL(file));
     setDetectedIngredients([]);
     setFridgeRecipes([]);
 
-    setTimeout(() => {
-      const items = ["Eggs", "Tomatoes", "Cheese", "Potatoes"];
-      setDetectedIngredients(items);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Image = reader.result as string;
+      setFridgeImage(base64Image);
 
-      // Populate our active ingredients list
-      setIngredients((prev) => {
-        const existing = prev.map((i) => i.name.toLowerCase());
-        const filtered = items
-          .filter((item) => !existing.includes(item.toLowerCase()))
-          .map((item) => ({
-            id: Math.random().toString(),
-            name: item,
-            category: item === "Eggs" ? "meat" : "vegetables",
-          }));
-        return [...prev, ...filtered];
-      });
+      try {
+        const response = await fetch("/api/scan-fridge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64Image }),
+        });
 
-      setFridgeRecipes([
-        {
-          id: "fr1",
-          name: "Fresh Shakshuka (Tomato Omelette)",
-          image: "https://images.unsplash.com/photo-1590412200988-a436bb705300?w=600&auto=format&fit=crop&q=60",
-          time: "15 Mins",
-          difficulty: "Easy",
-          calories: "320 kcal",
-          description: "Poached eggs cooked in a delicious sauce of tomatoes, olive oil, and melted cheese.",
-        },
-        {
-          id: "fr2",
-          name: "Cheesy Potato Hash",
-          image: "https://images.unsplash.com/photo-1518047601542-79f18c655718?w=600&auto=format&fit=crop&q=60",
-          time: "20 Mins",
-          difficulty: "Easy",
-          calories: "450 kcal",
-          description: "Crispy pan-fried potatoes topped with melted cheese and a fried egg.",
-        },
-      ]);
-      setScanning(false);
-    }, 3000);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.ingredients)) {
+            setIngredients(data.ingredients);
+            if (Array.isArray(data.detected)) {
+              setDetectedIngredients(data.detected);
+            }
+
+            // Generate contextual recipes on the fly depending on scanned items
+            const hasEggs = data.ingredients.some((i: any) => i.name.toLowerCase().includes("egg"));
+            const hasTomatoes = data.ingredients.some((i: any) => i.name.toLowerCase().includes("tomato"));
+            const hasCheese = data.ingredients.some((i: any) => i.name.toLowerCase().includes("cheese"));
+            const hasPotatoes = data.ingredients.some((i: any) => i.name.toLowerCase().includes("potato"));
+
+            const suggested = [];
+            if (hasEggs && hasTomatoes) {
+              suggested.push({
+                id: "fr1",
+                name: "Fresh Shakshuka (Tomato Omelette)",
+                image: "https://images.unsplash.com/photo-1590412200988-a436bb705300?w=600&auto=format&fit=crop&q=60",
+                time: "15 Mins",
+                difficulty: "Easy" as const,
+                calories: "320 kcal",
+                description: "Poached eggs cooked in a delicious sauce of tomatoes, olive oil, and melted cheese.",
+              });
+            }
+            if (hasCheese && hasPotatoes) {
+              suggested.push({
+                id: "fr2",
+                name: "Cheesy Potato Hash",
+                image: "https://images.unsplash.com/photo-1518047601542-79f18c655718?w=600&auto=format&fit=crop&q=60",
+                time: "20 Mins",
+                difficulty: "Easy" as const,
+                calories: "450 kcal",
+                description: "Crispy pan-fried potatoes topped with melted cheese and a fried egg.",
+              });
+            }
+            if (suggested.length === 0) {
+              suggested.push({
+                id: "fr3",
+                name: "Healthy Vegetable Stir-Fry",
+                image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop&q=60",
+                time: "15 Mins",
+                difficulty: "Easy" as const,
+                calories: "250 kcal",
+                description: "Quick stir-fry using your available fresh vegetables and seasonings.",
+              });
+            }
+            setFridgeRecipes(suggested);
+          }
+        }
+      } catch (err) {
+        console.error("Error scanning fridge image:", err);
+      } finally {
+        setScanning(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const getGreeting = () => {
@@ -442,23 +501,25 @@ export function Dashboard() {
     return parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
   };
 
-  const addManualIngredient = (e: React.FormEvent) => {
+  const addManualIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIngredientName.trim()) return;
 
-    setIngredients((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        name: newIngredientName.trim(),
-        category: newIngredientCategory,
-      },
-    ]);
+    const newItem = {
+      id: Date.now().toString(),
+      name: newIngredientName.trim(),
+      category: newIngredientCategory as any,
+    };
+    const updated = [...ingredients, newItem];
+    setIngredients(updated);
     setNewIngredientName("");
+    await saveIngredientsToServer(updated);
   };
 
-  const deleteIngredient = (id: string) => {
-    setIngredients((prev) => prev.filter((item) => item.id !== id));
+  const deleteIngredient = async (id: string) => {
+    const updated = ingredients.filter((item) => item.id !== id);
+    setIngredients(updated);
+    await saveIngredientsToServer(updated);
   };
 
   return (
