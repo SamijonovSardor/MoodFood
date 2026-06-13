@@ -21,6 +21,50 @@ const searchQueryMap: Record<string, string> = {
   excited: "healthy calming foods to balance high energy excited state medical advice",
 };
 
+// Image Generation Helper Function (supports Together AI, OpenAI, and other standard APIs)
+async function generateImage(prompt: string): Promise<string | null> {
+  const apiKey = process.env.IMAGE_GENERATION_API_KEY;
+  const apiUrl = process.env.IMAGE_GENERATION_API_URL || "https://api.together.xyz/v1/images/generations";
+  const modelName = process.env.IMAGE_GENERATION_MODEL || "black-forest-labs/FLUX.1-schnell";
+
+  if (!apiKey) {
+    console.warn("IMAGE_GENERATION_API_KEY is not defined. Skipping image generation.");
+    return null;
+  }
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelName,
+        prompt: `${prompt}, professional food photography, appetizing, studio lighting, highly detailed, 512x512 resolution`,
+        width: 512,
+        height: 512,
+        size: "512x512", // Compatibility for OpenAI DALL-E
+        n: 1,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const imageUrl = data?.data?.[0]?.url;
+      const b64 = data?.data?.[0]?.b64_json;
+      if (imageUrl) return imageUrl;
+      if (b64) return `data:image/png;base64,${b64}`;
+    } else {
+      const errText = await response.text();
+      console.error("Image generation API error response:", errText);
+    }
+  } catch (err) {
+    console.error("Error in generateImage function:", err);
+  }
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -155,7 +199,8 @@ Please synthesize this information and suggest a suitable recipe. The response M
   "title": "Taom nomi (e.g. Ismaloqli va Yong'oqli Issiq Salat)",
   "benefits": "Tibbiy jihatdan nima uchun bu taom tanlanganligi va uning foydasi (tibbiy/nutritional sabablar, qidiruv natijalariga asoslangan holda)",
   "ingredients": "Zaruriy mahsulotlar ro'yxati (tibbiy jihatdan foydali ingredientlarni alohida ta'kidlang)",
-  "recipe": "Tayyorlanish usuli (bosqichma-bosqich qisqa yo'riqnoma)"
+  "recipe": "Tayyorlanish usuli (bosqichma-bosqich qisqa yo'riqnoma)",
+  "image_prompt": "A detailed English descriptive prompt to generate a realistic image of this recommended food item (e.g. 'Appetizing plate of warm spinach salad with walnuts and red pepper flakes, close-up')"
 }`;
 
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -204,8 +249,19 @@ Please synthesize this information and suggest a suitable recipe. The response M
         benefits: `Bu taom tarkibidagi mahsulotlar sizning ${detectedKey} kayfiyatingizga ijobiy ta'sir ko'rsatish uchun tibbiy jihatdan foydali hisoblanadi.`,
         ingredients: `- Asosiy mahsulotlar\n- Ziravorlar\n- Ko'katlar`,
         recipe: `1. Masalliqlarni tozalab to'g'rang.\n2. Idishga solib pishiring yoki aralashtiring.\n3. Issiq holatida ko'katlar bilan bezab dasturxonga torting.`,
+        image_prompt: `Comforting food bowl for ${detectedKey} mood`,
       };
     }
+
+    // Step 4: Generate Image based on LLM prompt
+    let generatedImage = "/images/food-placeholder.jpg"; // default placeholder
+    if (recommendation.image_prompt) {
+      const imgResult = await generateImage(recommendation.image_prompt);
+      if (imgResult) {
+        generatedImage = imgResult;
+      }
+    }
+    recommendation.image = generatedImage;
 
     return NextResponse.json({
       success: true,

@@ -85,6 +85,7 @@ export const savedRecipes = sqliteTable("savedRecipe", {
   ingredients: text("ingredients").notNull(), // JSON string
   instructions: text("instructions").notNull(), // JSON string
   mood: text("mood"),
+  image: text("image"), // URL or base64 of generated food image
   createdAt: integer("createdAt", { mode: "timestamp" })
     .$defaultFn(() => new Date())
     .notNull(),

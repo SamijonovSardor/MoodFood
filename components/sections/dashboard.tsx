@@ -214,7 +214,9 @@ export function Dashboard() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [savedMeals, setSavedMeals] = useState<string[]>(["h2"]); // Default saved
   const [activeRecipe, setActiveRecipe] = useState<Meal | null>(null);
-  const [healthRecommendation, setHealthRecommendation] = useState<{ title: string; benefits: string; ingredients: string; recipe: string } | null>(null);
+  const [healthRecommendation, setHealthRecommendation] = useState<{ title: string; benefits: string; ingredients: string; recipe: string; image?: string } | null>(null);
+  const [dbSavedRecipes, setDbSavedRecipes] = useState<any[]>([]);
+  const [isSavingRecipe, setIsSavingRecipe] = useState(false);
 
   // Mood Analyzer states
   const [textInput, setTextInput] = useState("");
@@ -277,6 +279,67 @@ export function Dashboard() {
       });
     } catch (err) {
       console.error("Failed to save ingredients to server:", err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchSavedRecipes = async () => {
+      try {
+        const res = await fetch("/api/recipes");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.recipes)) {
+            setDbSavedRecipes(data.recipes);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch saved recipes:", err);
+      }
+    };
+    fetchSavedRecipes();
+  }, []);
+
+  const handleSaveCustomRecipe = async () => {
+    if (!healthRecommendation) return;
+    setIsSavingRecipe(true);
+    try {
+      const res = await fetch("/api/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: healthRecommendation.title,
+          ingredients: healthRecommendation.ingredients,
+          instructions: healthRecommendation.recipe,
+          mood: selectedMood,
+          image: healthRecommendation.image,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.recipe) {
+          setDbSavedRecipes((prev) => [data.recipe, ...prev]);
+          setNotification("Recipe successfully saved to your profile!");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save custom recipe:", err);
+    } finally {
+      setIsSavingRecipe(false);
+    }
+  };
+
+  const handleDeleteSavedRecipe = async (id: string) => {
+    try {
+      const res = await fetch(`/api/recipes?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setDbSavedRecipes((prev) => prev.filter((r) => r.id !== id));
+        setNotification("Recipe removed from your profile.");
+      }
+    } catch (err) {
+      console.error("Failed to delete recipe:", err);
     }
   };
 
@@ -827,9 +890,19 @@ export function Dashboard() {
                     </p>
                   </div>
                 ) : healthRecommendation ? (
-                  // Text-only Custom Health Recommendation
-                  <div className="w-full rounded-3xl border border-[#16A34A]/20 bg-gradient-to-br from-[#16A34A]/5 to-[#16A34A]/10 p-6 sm:p-8 flex flex-col gap-6 shadow-soft animate-in fade-in duration-300">
-                    <div className="flex flex-col gap-1.5">
+                  // Text + Image Custom Health Recommendation (Persisted in DB)
+                  <div className="w-full rounded-3xl border border-[#16A34A]/20 bg-gradient-to-br from-[#16A34A]/5 to-[#16A34A]/10 p-6 sm:p-8 flex flex-col gap-6 shadow-soft animate-in fade-in duration-300 relative">
+                    {/* Save Recipe Button */}
+                    <button
+                      onClick={handleSaveCustomRecipe}
+                      disabled={isSavingRecipe}
+                      className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white text-[#5A5A57] hover:text-red-500 shadow-soft-sm transition disabled:opacity-50 z-10 cursor-pointer"
+                      title="Save Recipe to Profile"
+                    >
+                      <Heart className={`h-5 w-5 ${dbSavedRecipes.some(r => r.title === healthRecommendation.title) ? "fill-red-500 text-red-500" : ""}`} />
+                    </button>
+
+                    <div className="flex flex-col gap-1.5 pr-12">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#16A34A] flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-[#16A34A] animate-pulse" />
                         🩺 Tibbiy Tadqiqotlarga Asoslangan Tavsiya (AI)
@@ -838,6 +911,14 @@ export function Dashboard() {
                         {healthRecommendation.title}
                       </h3>
                     </div>
+
+                    {/* Generated Food Image */}
+                    {healthRecommendation.image && (
+                      <div className="relative aspect-[16/8] w-full rounded-2xl overflow-hidden border border-[#EAEAE6] shadow-soft-sm bg-[#F3F3EF] max-h-80">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={healthRecommendation.image} alt={healthRecommendation.title} className="object-cover w-full h-full" />
+                      </div>
+                    )}
 
                     <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-[#EAEAE6]">
                       <div className="flex flex-col gap-5">
@@ -1169,7 +1250,7 @@ export function Dashboard() {
             </div>
           )}
 
-          {/* TAB 4: SAVED RECIPES (Hearted meals) */}
+          {/* TAB 4: SAVED RECIPES (From SQLite database) */}
           {activeTab === "saved" && (
             <div className="flex flex-col gap-8 animate-in fade-in duration-300">
               <section className="flex flex-col gap-1 pb-4 border-b border-[#EAEAE6]">
@@ -1181,7 +1262,7 @@ export function Dashboard() {
                 </p>
               </section>
 
-              {savedMeals.length === 0 ? (
+              {dbSavedRecipes.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-[#EAEAE6] bg-white p-12 text-center flex flex-col items-center justify-center min-h-[260px]">
                   <Heart className="h-10 w-10 text-[#A1A19D] mb-3" />
                   <h3 className="text-base font-semibold text-[#0C0C0C]">No Saved Recipes</h3>
@@ -1191,46 +1272,60 @@ export function Dashboard() {
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-5">
-                  {allDiscoverMeals
-                    .filter((m) => savedMeals.includes(m.id))
-                    .map((meal) => (
-                      <div
-                        key={meal.id}
-                        className="rounded-3xl border border-[#EAEAE6] bg-white overflow-hidden shadow-soft-sm flex flex-col"
-                      >
-                        <div className="relative aspect-[16/10] overflow-hidden bg-[#F3F3EF]">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={meal.image} alt={meal.name} className="object-cover w-full h-full" />
-                          <button
-                            onClick={() => toggleSaveMeal(meal.id)}
-                            className="absolute top-3 right-3 h-8 w-8 rounded-full bg-white/95 flex items-center justify-center text-red-500 shadow-soft-sm transition"
-                          >
-                            <Heart className="h-4.5 w-4.5 fill-red-500" />
-                          </button>
+                  {dbSavedRecipes.map((meal) => (
+                    <div
+                      key={meal.id}
+                      className="rounded-3xl border border-[#EAEAE6] bg-white overflow-hidden shadow-soft-sm flex flex-col"
+                    >
+                      <div className="relative aspect-[16/10] overflow-hidden bg-[#F3F3EF]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={meal.image || "/images/food-placeholder.jpg"} alt={meal.title} className="object-cover w-full h-full" />
+                        <button
+                          onClick={() => handleDeleteSavedRecipe(meal.id)}
+                          className="absolute top-3 right-3 h-8 w-8 rounded-full bg-white/95 flex items-center justify-center text-red-500 shadow-soft-sm transition hover:scale-105 cursor-pointer"
+                          title="Remove recipe"
+                        >
+                          <Trash2 className="h-4.5 w-4.5 text-red-500" />
+                        </button>
+                      </div>
+
+                      <div className="p-4 flex-1 flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5">
+                          {meal.mood && (
+                            <span className="bg-[#16A34A]/10 text-[#16A34A] px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                              {meal.mood}
+                            </span>
+                          )}
                         </div>
+                        <h3 className="text-base font-semibold text-[#0C0C0C] truncate leading-tight">
+                          {meal.title}
+                        </h3>
+                        <p className="text-[11px] text-[#5A5A57] line-clamp-2 leading-relaxed">
+                          {meal.benefits}
+                        </p>
 
-                        <div className="p-4 flex-1 flex flex-col gap-2">
-                          <h3 className="text-base font-semibold text-[#0C0C0C] truncate leading-tight">
-                            {meal.name}
-                          </h3>
-                          <p className="text-[11px] text-[#5A5A57] line-clamp-2 leading-relaxed">
-                            {meal.description}
-                          </p>
-
-                          <div className="mt-auto pt-2 border-t border-[#F3F3EF] flex items-center justify-between">
-                            <span className="text-[9px] font-bold text-[#A1A19D]">{meal.time} · {meal.calories}</span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setActiveRecipe(meal)}
-                              className="h-7 text-xs font-semibold px-2.5 text-[#16A34A] hover:bg-[#16A34A]/5 rounded-lg"
-                            >
-                              View Recipe
-                            </Button>
-                          </div>
+                        <div className="mt-auto pt-2 border-t border-[#F3F3EF] flex items-center justify-between">
+                          <span className="text-[9px] font-bold text-[#A1A19D]">Saved on {new Date(meal.createdAt).toLocaleDateString()}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setActiveRecipe({
+                              id: meal.id,
+                              name: meal.title,
+                              image: meal.image || "/images/food-placeholder.jpg",
+                              time: "Custom",
+                              difficulty: "Medium",
+                              calories: "N/A",
+                              description: (meal.benefits || "") + "\n\nIngredients:\n" + (meal.ingredients || "") + "\n\nInstructions:\n" + (meal.instructions || "")
+                            })}
+                            className="h-7 text-xs font-semibold px-2.5 text-[#16A34A] hover:bg-[#16A34A]/5 rounded-lg"
+                          >
+                            View Details
+                          </Button>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
